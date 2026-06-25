@@ -1,320 +1,285 @@
-# Call Data Analytics Dashboard
+# PineVox Analytics Dashboard
 
-A Streamlit-based analytics dashboard for monitoring and exploring call detail records (CDRs). The application provides interactive filtering, KPI reporting, operational insights, and visualizations for call activity, performance, costs, and regional trends.
+```{=html}
+<p align="center">
+```
+![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?logo=streamlit)
+![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi)
+![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?logo=mongodb)
+![Render](https://img.shields.io/badge/API-Render-46E3B7)
 
----
+Interactive analytics dashboard for visualising and exploring Call
+Detail Record (CDR) data through a secure FastAPI backend.
 
-## Features
+```{=html}
+</p>
+```
 
-### Interactive Filters
+------------------------------------------------------------------------
 
-Filter call records by:
+# Overview
 
-- City
-- Call Status (Successful / Failed)
-- Date Range
+The PineVox Analytics Dashboard is a Streamlit application that provides
+an interactive interface for analysing call activity, operational
+performance and regional trends.
 
-### KPI Overview
+Unlike traditional dashboards that process data locally, all business
+logic and analytics are retrieved from a secured FastAPI backend through
+authenticated REST API requests. Users authenticate using JWT
+credentials before accessing protected dashboard resources.
 
-View high-level metrics including:
+------------------------------------------------------------------------
 
-- Total Calls
-- Total Cost
-- Average Call Duration
-- Call Success Rate
-- Active Cities
+# Features
 
-### Activity Analytics
+-   Secure JWT authentication
+-   Interactive filtering
+-   KPI overview cards
+-   Call activity trends
+-   Call performance analytics
+-   Cost analytics
+-   Regional insights
+-   Paginated call records
+-   Responsive layout
+-   Backend-driven analytics
+-   Automatic logout when authentication expires
 
-Track call activity over time through:
+------------------------------------------------------------------------
 
-- Calls per Hour
-- Calls per Day
+# Dashboard Architecture
 
-### Performance Analytics
+``` text
+                 User
+                  │
+                  ▼
+          Streamlit Dashboard
+                  │
+        HTTPS + Bearer JWT
+                  │
+                  ▼
+          FastAPI REST API
+                  │
+                  ▼
+            MongoDB Atlas
+```
 
-Analyze call quality and behavior with:
+------------------------------------------------------------------------
 
-- Duration Distribution
-- Call Duration vs Cost Analysis
-- Longest Call
-- Shortest Call
-- Average Duration
-- Total Duration
+# Technology Stack
 
-### Cost Analytics
+  Technology      Purpose
+  --------------- ----------------------------
+  Python          Application language
+  Streamlit       Dashboard framework
+  Plotly          Interactive visualisations
+  Pandas          Data processing
+  Requests        REST API client
+  FastAPI         Backend API
+  MongoDB Atlas   Database
+  Render          Backend hosting
 
-Monitor spending patterns using:
+------------------------------------------------------------------------
 
-- Total Call Cost
-- Average Cost per Call
-- Highest Call Cost
-- Average Cost by City
-- Total Cost by City
-- Cost vs Duration Correlation
+# Dashboard Sections
 
-### Regional Insights
+## Overview
 
-Compare activity across locations with:
+Displays high-level KPIs including:
 
-- Call Volume by City
+-   Total Calls
+-   Total Cost
+-   Average Duration
+-   Success Rate
+-   Active Cities
 
-### Recent Call Log
+## Activity Trends
 
-Inspect the latest call records in a searchable tabular view.
+Interactive charts showing:
 
----
+-   Calls per Hour
+-   Calls per Day
 
-## Technology Stack
+## Call Performance
 
-| Component | Technology |
-|------------|------------|
-| Frontend | Streamlit |
-| Visualization | Plotly |
-| Data Processing | Pandas |
-| API Requests | Requests |
-| UI Components | streamlit-shadcn-ui |
-| Language | Python 3 |
+Visualisations include:
 
----
+-   Duration Distribution
+-   Duration vs Cost
+-   Longest Call
+-   Shortest Call
+-   Average Duration
 
-## Project Structure
+## Cost Performance
 
-```text
+Displays:
+
+-   Total Cost
+-   Average Cost per Call
+-   Highest Call Cost
+-   Cost by City
+-   Cost by Duration
+
+## Regional Insights
+
+Compare call activity across cities.
+
+## Recent Calls
+
+Paginated Call Detail Record table supporting backend filtering.
+
+------------------------------------------------------------------------
+
+# Authentication Flow
+
+``` text
+User Login
+     │
+     ▼
+Streamlit Login Page
+     │
+     ▼
+POST /auth/login
+     │
+     ▼
+Receive JWT
+     │
+     ▼
+Store Token in Session State
+     │
+     ▼
+Authenticated API Requests
+     │
+     ▼
+Dashboard Data
+```
+
+------------------------------------------------------------------------
+
+# Project Structure
+
+``` text
 analytics_dashboard/
 │
-├── app.py
-├── helpers.py
-├── requirements.txt
-│
+├── api/
 ├── charts/
-│   ├── activity.py
-│   ├── cost.py
-│   ├── performance.py
-│   └── regional.py
-│
 ├── data/
-│   ├── loader.py
-│   └── filters.py
-│
-└── utils/
-    └── metrics.py
+├── sections/
+├── utils/
+├── config.py
+├── app.py
+└── requirements.txt
 ```
 
-### Module Responsibilities
+------------------------------------------------------------------------
 
-#### app.py
+# Installation
 
-Main dashboard application.
-
-Responsible for:
-
-- Loading data
-- Rendering filters
-- Calculating metrics
-- Building visualizations
-- Displaying dashboard sections
-
-#### data/loader.py
-
-Handles:
-
-- API retrieval
-- Data cleaning
-- Type conversions
-- Phone number normalization
-
-#### data/filters.py
-
-Contains:
-
-- Filter UI components
-- Filtering logic
-
-#### utils/metrics.py
-
-Calculates dashboard KPIs.
-
-#### charts/
-
-Contains chart-generation functions grouped by business domain:
-
-- Activity
-- Cost
-- Performance
-- Regional
-
-#### helpers.py
-
-Reusable UI helpers for:
-
-- KPI cards
-- Chart containers
-- Section headers
-- Plotly theme configuration
-
----
-
-## Data Source
-
-The dashboard consumes call data from:
-
-```text
-https://69b30b45e224ec066bdb55a0.mockapi.io/api/v1/cdr
-```
-
-The API returns call detail records containing information such as:
-
-- Caller details
-- Receiver details
-- Call duration
-- Call cost
-- Call timestamps
-- Call status
-- City information
-
----
-
-## Installation
-
-### Clone the Repository
-
-```bash
+``` bash
 git clone <repository-url>
 cd analytics_dashboard
+python -m venv .venv
 ```
 
-### Create a Virtual Environment
+Activate the environment.
 
-```bash
-python -m venv venv
+Windows:
+
+``` bash
+.venv\Scripts\activate
 ```
 
-Activate the environment:
+Install dependencies:
 
-**Windows**
-
-```bash
-venv\Scripts\activate
-```
-
-**Linux / macOS**
-
-```bash
-source venv/bin/activate
-```
-
-### Install Dependencies
-
-```bash
+``` bash
 pip install -r requirements.txt
 ```
 
----
+------------------------------------------------------------------------
 
-## Running the Application
+# Environment Variables
 
-Start the Streamlit server:
+Create a `.env` file.
 
-```bash
+``` env
+API_URL=http://127.0.0.1:8000
+```
+
+For deployment, configure:
+
+``` text
+API_URL=https://your-render-api.onrender.com
+```
+
+------------------------------------------------------------------------
+
+# Running the Dashboard
+
+``` bash
 streamlit run app.py
 ```
 
-The dashboard will become available at:
+The application is available at:
 
-```text
+``` text
 http://localhost:8501
 ```
 
----
+------------------------------------------------------------------------
 
-## Data Processing
+# Deployment
 
-Before visualization, the application:
+The dashboard is deployed to Streamlit Community Cloud.
 
-### Numeric Conversion
+Configuration includes:
 
-Converts:
+-   API URL stored as a secret
+-   Automatic GitHub deployments
+-   Secure communication with the FastAPI backend
 
-- id
-- callCost
-- callDuration
+------------------------------------------------------------------------
 
-to numeric formats.
+# Screenshots
 
-### Datetime Conversion
+Add screenshots of:
 
-Converts:
+-   Login Page
+-   Dashboard Overview
+-   Activity Trends
+-   Cost Performance
+-   Regional Insights
 
-- callStartTime
-- callEndTime
+------------------------------------------------------------------------
 
-to timezone-aware datetime objects.
+# Backend API
 
-### Phone Number Cleaning
+This dashboard consumes the companion FastAPI backend using
+authenticated REST requests.
 
-Normalizes phone numbers by:
+The backend provides:
 
-- Removing extensions
-- Removing non-numeric characters
-- Preserving digits only
+-   JWT authentication
+-   RBAC
+-   Analytics endpoints
+-   Metadata endpoints
+-   Paginated CDR endpoints
 
----
+------------------------------------------------------------------------
 
-## Dashboard Sections
+# Future Improvements
 
-### Overview
+-   Dark/light theme enhancements
+-   Export dashboard reports
+-   Additional analytics
+-   User profile management
+-   Refresh token support
+-   Caching for improved performance
+-   Docker deployment
 
-High-level operational KPIs.
+------------------------------------------------------------------------
 
-### Activity Trends
+# Author
 
-Visualizes temporal call patterns.
+**Mathew Meisinger**
 
-### Call Performance
-
-Analyzes duration characteristics and performance indicators.
-
-### Cost Performance
-
-Tracks spending and cost efficiency.
-
-### Regional Insights
-
-Compares call volume across cities.
-
-### Recent Calls
-
-Displays filtered call records.
-
----
-
-## Caching
-
-API responses are cached using Streamlit's caching mechanism:
-
-```python
-@st.cache_data(ttl=600)
-```
-
-Cache duration:
-
-- 10 minutes (600 seconds)
-
-This reduces unnecessary API requests and improves dashboard responsiveness.
-
----
-
-## Future Improvements
-
-Potential enhancements include:
-
-- Export to CSV/Excel
-- Authentication and role-based access
-- Real-time streaming updates
-- Database-backed storage
-- Advanced KPI calculations
-- Drill-down analytics
-- Geospatial visualizations
-- Forecasting and trend analysis
-- Automated anomaly detection
+Software Engineer \| Data Analyst \| AI Enthusiast
