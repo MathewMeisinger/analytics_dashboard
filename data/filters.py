@@ -1,77 +1,53 @@
 import streamlit as st
+from api.client import get_metadata
+import pandas as pd
 
 
-def render_filters(df):
+@st.cache_data(ttl=300)
+def load_metadata():
+    return get_metadata()
+
+
+def render_filters(metadata):
+    metadata = load_metadata()
     # FILTER LOGIC
-    filter_col1, filter_col2, filter_col3 = st.columns(3)
+    filter_col1, filter_col2, filter_col3, filter_col4 = st.columns(4)
 
     with filter_col1:
         # city filter
         selected_city = st.selectbox(
             "City",
-            ["All"] + sorted(df["city"].unique().tolist()),
+            ["All"] + metadata["cities"],
             key="city_filter"
         )
     with filter_col2:
-        # call status filter
-        selected_status = st.selectbox(
-            "Call status",
-            ["All", "Successful", "Failed"],
-            key="status_filter"
+        # caller number filter
+        caller_status = st.selectbox(
+            "Caller Number",
+            ["All"] + metadata["callerNumbers"],
+            key="caller_filter"
         )
     with filter_col3:
+        # receiver number filter
+        receiver_status = st.selectbox(
+            "Receiver Number",
+            ["All"] + metadata["receiverNumbers"],
+            key="receiver_filter"
+        )
+    with filter_col4:
         # date filter
         date_range = st.date_input(
             "Date Range",
             value=(
-                df["callStartTime"].min().date(),
-                df["callStartTime"].max().date()
+                pd.to_datetime(metadata["minDate"]).date(),
+                pd.to_datetime(metadata["maxDate"]).date(),
             ),
             key="date_filter"
         )
 
     return (
         selected_city,
-        selected_status,
+        caller_status,
+        receiver_status,
         date_range
         )
-
-
-def apply_filters(
-    df,
-    selected_city,
-    selected_status,
-    date_range
-):
-    # filter application logic
-    filtered_df = df.copy()
-
-    # city filter
-    if selected_city != "All":
-        filtered_df = filtered_df[
-            filtered_df["city"] == selected_city
-        ]
-
-    # call status filter
-    if selected_status == "Successful":
-        filtered_df = filtered_df[
-            filtered_df["callStatus"] == True
-        ]
-    elif selected_status == "Failed":
-        filtered_df = filtered_df[
-            filtered_df["callStatus"] == False
-        ]
-
-    # date range filter
-    start_date, end_date = date_range
-
-    filtered_df = filtered_df[
-        (
-            filtered_df["callStartTime"].dt.date >= start_date
-        )
-        &
-        (
-            filtered_df["callStartTime"].dt.date <= end_date
-        )
-    ]
-    return filtered_df

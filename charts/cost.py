@@ -1,35 +1,38 @@
+import pandas as pd
 import plotly.express as px
 
 
-def build_avg_cost_city_chart(df):
-    city_avg_cost = (
-        df.groupby("city")["callCost"]
-        .mean()
-        .sort_values(ascending=False)
-        .reset_index()
-    )
+def build_avg_cost_city_chart(cost_data):
+
+    cost_df = pd.DataFrame(cost_data)
 
     fig = px.bar(
-        city_avg_cost,
+        cost_df,
         x="city",
-        y="callCost",
+        y="averageCost",
+    )
+
+    fig.update_layout(
+        xaxis_title="City",
+        yaxis_title="Average Cost",
     )
 
     return fig
 
 
-def build_total_cost_city_chart(df):
-    # total cost per city
-    city_total_cost = (
-        df.groupby("city")["callCost"]
-        .sum()
-        .sort_values(ascending=False)
-        .reset_index()
-    )
+def build_total_cost_city_chart(cost_data):
+
+    cost_df = pd.DataFrame(cost_data)
+
     fig = px.bar(
-        city_total_cost,
+        cost_df,
         x="city",
-        y="callCost",
+        y="totalCost",
+    )
+
+    fig.update_layout(
+        xaxis_title="City",
+        yaxis_title="Total Cost",
     )
 
     return fig

@@ -1,34 +1,40 @@
+# ---------------------------------------------------------------
 # imports
+# ---------------------------------------------------------------
 import streamlit as st
-from helpers import (
-    metric_card,
-    chart_card,
-    section_header,
-    apply_chart_theme
+import pandas as pd
+from utils.api_filters import build_filter_params
+from sections.overview import render_overview
+from sections.activity import render_activity
+from sections.performance import render_performance
+from sections.cost import render_cost
+from sections.regional import render_regional
+from sections.recent_calls import render_recent_calls
+from sections.login import render_login
+from sections.sidebar import render_sidebar
+from api.client import (
+    get_summary,
+    get_calls_by_hour,
+    get_calls_by_day,
+    get_calls_by_city,
+    get_cost_by_city,
+    get_call_records,
+    get_metadata
 )
-from data.loader import (
-    fetch_api_data,
-    clean_data
+from data.filters import (render_filters)
+
+# ---------------------------------------------------------------
+# Page Configuration
+# ---------------------------------------------------------------
+st.set_page_config(
+    page_title="Call Data Analysis Dashboard",
+    page_icon=":chart_with_upwards_trend:",
+    layout="wide",
 )
-from data.filters import (
-    render_filters,
-    apply_filters
-)
-from utils.metrics import calculate_metrics
-from charts.activity import (
-    build_daily_calls_chart,
-    build_hourly_calls_chart
-)
-from charts.regional import build_city_volume_chart
-from charts.performance import (
-    build_duration_distribution,
-    build_duration_vs_cost
-)
-from charts.cost import (
-    build_avg_cost_city_chart,
-    build_total_cost_city_chart,
-    build_cost_duration_chart
-)
+
+if "access_token" not in st.session_state:
+    st.session_state["access_token"] = None
+
 
 st.markdown("""
 <style>
@@ -42,290 +48,111 @@ div[data-testid="stMetric"] {
 </style>
 """, unsafe_allow_html=True)
 
-# PAGE SETUP
-st.set_page_config(
-    page_title="Call Data Analysis Dashboard",
-    page_icon=":chart_with_upwards_trend:",
-    layout="wide",
-)
-# TITLE SECTION
-st.title("Call Data Analytics")
-st.caption(
-    "Monitor call volume, duration, cost, and regional performance."
-)
 
+# ---------------------------------------------------------------
+# Authentication
+# ---------------------------------------------------------------
+if "access_token" not in st.session_state:
+    st.session_state["access_token"] = None
+
+if "user" not in st.session_state:
+    st.session_state["user"] = None
+
+if not st.session_state["access_token"]:
+    render_login()
+    st.stop()
+
+
+# ---------------------------------------------------------------
+# Sidebar
+# ---------------------------------------------------------------
+render_sidebar()
+
+# ---------------------------------------------------------------
+# Page Header
+# ---------------------------------------------------------------
+st.title("Call Data Analytics")
+st.caption("Monitor call volume, duration, cost, and regional performance.")
 st.title("Filters")
 
-# load data and populate dataframe
-json_data = fetch_api_data()
 
-if json_data:
-    df = clean_data(json_data)
-else:
-    st.warning("No data found or the API is offline")
+# ---------------------------------------------------------------
+# Filter State
+# ---------------------------------------------------------------
+metadata = get_metadata()
+
+if metadata is None:
+    st.warning("Unable to load metadata.")
     st.stop()
 
-selected_city, selected_status, date_range = render_filters(df)
+selected_city, caller_status, receiver_status, date_range = render_filters(
+    metadata
+)
 
-filtered_df = apply_filters(
-    df,
+params = build_filter_params(
     selected_city,
-    selected_status,
-    date_range
+    caller_status,
+    receiver_status,
+    date_range,
 )
 
-if filtered_df.empty:
-    st.warning("No records match thye selected filters.")
+
+# ---------------------------------------------------------------
+# Dashboard Data
+# ---------------------------------------------------------------
+metrics = get_summary(params)
+if metrics is None:
+    st.error("Unable to retrieve dashboard metrics.")
     st.stop()
 
-# Render metrics
-metrics = calculate_metrics(filtered_df)
+
+call_records = get_call_records(params)
+if call_records is None:
+    st.error("Unable to retrive Call Records.")
+    st.stop()
+
+hourly_data = get_calls_by_hour(params)
+if hourly_data is None:
+    st.error("Unable to retrive Call Records.")
+    st.stop()
+
+daily_data = get_calls_by_day(params)
+if daily_data is None:
+    st.error("Unable to retrive Call Records.")
+    st.stop()
+
+cost_data = get_cost_by_city(params)
+if cost_data is None:
+    st.error("Unable to retrive Call Records.")
+    st.stop()
+
+city_data = get_calls_by_city(params)
+if city_data is None:
+    st.error("Unable to retrive Call Records.")
+    st.stop()
 
 
-meta_col1, meta_col2, meta_col3 = st.columns(3)
-with meta_col1:
-    st.metric(
-        "Records Loaded",
-        len(filtered_df)
-    )
-with meta_col2:
-    st.metric(
-        "Filtered Records",
-        len(filtered_df)
-    )
-with meta_col3:
-    st.metric(
-        "Cities",
-        filtered_df["city"].nunique()
-    )
+# ---------------------------------------------------------------
+# Data Preparation
+# ---------------------------------------------------------------
+call_records_df = pd.DataFrame(call_records)
 
+if call_records_df.empty:
+    st.warning("No records match the selected filters.")
+    st.stop()
 
-# 1. KPI SUMMARY CARDS
-section_header(
-    "Overview",
-    "High level performance metrics across all call activity."
-)
-cols = st.columns(5)
-with cols[0]:
-    metric_card(
-        "Total Calls",
-        metrics["total_calls"],
-        "All recorded Calls.",
-        "card1"
-        )
-with cols[1]:
-    metric_card(
-        "Total Cost",
-        metrics["total_cost"],
-        "Measured in Units.",
-        "card2"
-        )
-with cols[2]:
-    metric_card(
-        "Avg Duration",
-        f'{metrics["avg_duration"]}s',
-        "Average per call.",
-        "card3"
-        )
-with cols[3]:
-    metric_card(
-        "Success Rate of Calls",
-        f"{metrics['success_rate']}%",
-        "Ratio of completed calls.",
-        "card4"
-        )
-with cols[4]:
-    metric_card(
-        "Active Cities",
-        metrics['active_cities'],
-        "Unique Locations",
-        "card5"
-    )
-
-
-# 4. CALL ACTIVITY TIMELINE
-section_header(
-    "Activity Trends",
-    "Monitor Call activity across Time."
-)
-fig_hourly_calls = (
-    build_hourly_calls_chart(filtered_df)
-)
-fig_daily_calls = (
-    build_daily_calls_chart(filtered_df)
-)
-apply_chart_theme(fig_daily_calls)
-apply_chart_theme(fig_hourly_calls)
-
-col1, col2 = st.columns(2)
-with col1:
-    chart_card(
-        "Calls per Hour",
-        "Distribution of calls per 24hrs.",
-        fig_hourly_calls,
-    )
-with col2:
-    chart_card(
-        "Calls per Day",
-        "Distribution of calls per day.",
-        fig_daily_calls,
-    )
-
-
-# 2. CALL DURATION ANALYTICS
-section_header(
-    "Call Performance",
-    "Analyse duration trends and call behaviour."
-)
-cols = st.columns(4)
-with cols[0]:
-    metric_card(
-        "Longest Call",
-        metrics["max_duration"],
-        "Seconds",
-        "call_card1"
-    )
-with cols[1]:
-    metric_card(
-        "Shortest Call",
-        metrics["min_duration"],
-        "Seconds",
-        "call_card2"
-    )
-with cols[2]:
-    metric_card(
-        "Average Call Duration",
-        metrics["avg_duration"],
-        "Seconds",
-        "call_card3"
-    )
-with cols[3]:
-    metric_card(
-        "Total Call Duration",
-        metrics["total_duration"],
-        "Seconds",
-        "call_card4"
-    )
-
-# plots for call duration analytics
-duration_histogram = build_duration_distribution(filtered_df)
-duration_vs_cost = build_duration_vs_cost(filtered_df)
-apply_chart_theme(duration_histogram)
-apply_chart_theme(duration_vs_cost)
-
-left, right = st.columns(2)
-with left:
-    chart_card(
-            "Duration Distribution",
-            "distribution of call durations.",
-            duration_histogram,
-        )
-with right:
-    chart_card(
-        "Call Cost by Call Duration",
-        "Distribution of call costs by call durations.",
-        duration_vs_cost,
-    )
-
-
-# 3. CALL COST ANALYTICS
-section_header(
-    "Cost Performance",
-    "Track call spending and cost efficiency."
-)
-
-cols = st.columns(3)
-with cols[0]:
-    metric_card(
-        "Total Cost:",
-        metrics["total_cost"],
-        "Measured in Units.",
-        "cost_card1"
-        )
-with cols[1]:
-    metric_card(
-        "Avg Cost / Call:",
-        metrics["avg_cost"],
-        "Measured in Units",
-        "cost_card2"
-        )
-with cols[2]:
-    metric_card(
-        "Highest Call Cost:",
-        metrics["max_cost"],
-        "Measured in Units",
-        "cost_card3"
-        )
-
-# build cost charts
-fig_city_avg_cost = (
-    build_avg_cost_city_chart(filtered_df)
-)
-fig_city_total_cost = (
-    build_total_cost_city_chart(filtered_df)
-)
-fig_cost_duration = (
-    build_cost_duration_chart(filtered_df)
-)
-
-apply_chart_theme(fig_city_avg_cost)
-apply_chart_theme(fig_city_total_cost)
-apply_chart_theme(fig_cost_duration)
-
-# plot cost analytics
-top_left, top_right = st.columns(2)
-with top_left:
-    chart_card(
-        "Average Call cost by City",
-        "Average of call cost per City.",
-        fig_city_avg_cost,
-    )
-with top_right:
-    chart_card(
-        "Total Call cost by City",
-        "Total cost of calls per city.",
-        fig_city_total_cost,
-    )
-chart_card(
-    "Call cost by Duration",
-    "Cost of calls by the duration of the calls.",
-    fig_cost_duration,
+call_records_df["callStartTime"] = pd.to_datetime(
+    call_records_df["callStartTime"],
+    format="mixed",
 )
 
 
-# 5. REGIONAL CALL DATA
-section_header(
-    "Regional Insights",
-    "Compare call activity across locations."
-)
-
-fig_city_calls = build_city_volume_chart(filtered_df)
-
-apply_chart_theme(fig_city_calls)
-
-chart_card(
-    "Call number by City",
-    "Number of calls per City",
-    fig_city_calls,
-)
-
-# 6. RECENT CALL LOG TABLE
-section_header(
-    "Most recent Calls",
-    "Latest call records available from the system."
-)
-call_log_df = filtered_df[[
-    "callerName",
-    "callerNumber",
-    "receiverNumber",
-    "city",
-    "callDuration",
-    "callCost",
-    "callStartTime"
-    ]]
-total_users = len(filtered_df)
-st.dataframe(
-    call_log_df,
-    use_container_width=True,
-    hide_index=True
-    )
+# ---------------------------------------------------------------
+# Dashboard Rendering
+# ---------------------------------------------------------------
+render_overview(metrics)
+render_activity(hourly_data, daily_data)
+render_performance(call_records_df, metrics)
+render_cost(metrics, cost_data, call_records_df)
+render_regional(city_data)
+render_recent_calls(params)

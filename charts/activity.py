@@ -1,49 +1,40 @@
+import pandas as pd
 import plotly.express as px
 
 
-def build_hourly_calls_chart(df):
-    activity_df = df.copy()
-    activity_df["hour"] = activity_df["callStartTime"].dt.hour
+def build_hourly_calls_chart(hourly_data):
 
-    hourly_calls = (
-        activity_df.groupby("hour")
-        .size()
-        .reset_index(name="calls")
-    )
+    hourly_df = pd.DataFrame(hourly_data)
 
     fig = px.line(
-        hourly_calls,
+        hourly_df,
         x="hour",
-        y="calls",
+        y="totalCalls",
         markers=True,
     )
+
     fig.update_layout(
-        xaxis_title="Hour of the day",
-        yaxis_title="Number of Calls"
+        xaxis_title="Hour of Day",
+        yaxis_title="Number of Calls",
     )
 
     return fig
 
 
-def build_daily_calls_chart(df):
-    activity_df = df.copy()
-    activity_df["callDate"] = activity_df["callStartTime"].dt.date
+def build_daily_calls_chart(daily_data):
 
-    daily_calls = (
-        activity_df.groupby("callDate")
-        .size()
-        .reset_index(name="calls")
-    )
+    daily_df = pd.DataFrame(daily_data)
 
     fig = px.line(
-        daily_calls,
-        x="callDate",
-        y="calls",
+        daily_df,
+        x="day",
+        y="totalCalls",
         markers=True,
     )
+
     fig.update_layout(
         xaxis_title="Date",
-        yaxis_title="Number of Calls"
+        yaxis_title="Number of Calls",
     )
 
     return fig
